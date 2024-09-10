@@ -14,13 +14,16 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
+# Define o timezone de São Paulo
+sp_timezone = pytz.timezone('America/Sao_Paulo')
+
 # Logging configuration
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def buscar_pedidos(data):
+def buscar_pedidos(data_inicio, data_fim):
     pedidos = []
-    url = f"https://{os.getenv('SHOP_NAME')}/admin/api/2023-01/orders.json?created_at_min={data}T00:00:00Z&created_at_max={data}T23:59:59Z&status=any&limit=250"
+    url = f"https://{os.getenv('SHOP_NAME')}/admin/api/2023-01/orders.json?created_at_min={data_inicio.isoformat()}&created_at_max={data_fim.isoformat()}&status=any&limit=250"
     headers = {
         "X-Shopify-Access-Token": os.getenv('ACCESS_TOKEN')
     }
@@ -34,7 +37,7 @@ def buscar_pedidos(data):
             if 'orders' in data:
                 pedidos.extend(data['orders'])
             else:
-                logger.warning(f"Não foram encontrados pedidos para a data {data}")
+                logger.warning(f"Não foram encontrados pedidos entre {data_inicio.isoformat()} e {data_fim.isoformat()}")
             
             url = response.links.get('next', {}).get('url')
         except requests.RequestException as e:
@@ -74,21 +77,25 @@ def formatar_telefone(telefone):
     return numeros[:13]
 
 def calcular_datas_busca():
-    hoje = datetime.now(pytz.UTC).date()
+    hoje_sp = datetime.now(sp_timezone).date()
     return {
-        30: (hoje - timedelta(days=30)).strftime('%Y-%m-%d'),
-        60: (hoje - timedelta(days=60)).strftime('%Y-%m-%d'),
-        90: (hoje - timedelta(days=90)).strftime('%Y-%m-%d'),
-        180: (hoje - timedelta(days=180)).strftime('%Y-%m-%d'),
-        365: (hoje - timedelta(days=365)).strftime('%Y-%m-%d')
+        30: (hoje_sp - timedelta(days=30)).strftime('%Y-%m-%d'),
+        60: (hoje_sp - timedelta(days=60)).strftime('%Y-%m-%d'),
+        90: (hoje_sp - timedelta(days=90)).strftime('%Y-%m-%d'),
+        180: (hoje_sp - timedelta(days=180)).strftime('%Y-%m-%d'),
+        365: (hoje_sp - timedelta(days=365)).strftime('%Y-%m-%d')
     }
 
 def buscar_clientes_por_datas():
     datas_busca = calcular_datas_busca()
     clientes_por_periodo = {}
     
-    for dias, data in datas_busca.items():
-        pedidos = buscar_pedidos(data)
+    for dias, data_str in datas_busca.items():
+        data = datetime.strptime(data_str, '%Y-%m-%d').date()
+        data_inicio = datetime.combine(data, datetime.min.time(), sp_timezone)
+        data_fim = datetime.combine(data + timedelta(days=1), datetime.min.time(), sp_timezone) - timedelta(seconds=1)
+        
+        pedidos = buscar_pedidos(data_inicio, data_fim)
         if pedidos:
             clientes = extrair_dados_clientes(pedidos)
             clientes_por_periodo[dias] = clientes
@@ -118,7 +125,7 @@ def gerar_cupom(nome, telefone, dias):
     return cupom, desconto
 
 def calcular_data_validade():
-    return datetime.now() + timedelta(days=1)
+    return datetime.now(sp_timezone) + timedelta(days=1)
 
 def gerar_mensagem_personalizada(nome, cupom, desconto, dias):
     data_validade = calcular_data_validade().strftime("%d/%m/%Y às %H:%M")
@@ -142,7 +149,7 @@ def criar_cupom_shopify(nome_cupom, cupom, desconto, data_validade):
             "value_type": "percentage",
             "value": f"-{desconto}.0",
             "customer_selection": "all",
-            "starts_at": datetime.now().isoformat(),
+            "starts_at": datetime.now(sp_timezone).isoformat(),
             "ends_at": data_validade.isoformat()
         }
     }
@@ -255,7 +262,7 @@ def executar():
 
 def agendar_proxima_execucao():
     # Define a próxima execução para as 08:00 (horário de São Paulo)
-    schedule.every().day.at("08:00").do(executar)
+    schedule.every().day.at("08:00", sp_timezone).do(executar)
 
 if __name__ == "__main__":
     # Executa a primeira vez imediatamente
