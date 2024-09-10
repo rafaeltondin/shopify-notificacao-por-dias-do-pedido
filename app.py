@@ -9,7 +9,7 @@ import sys
 import random
 import time
 import schedule
-from dotenv import load_load_dotenv
+from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
@@ -202,6 +202,34 @@ def send_whatsapp_message(number, message):
         logger.error(f"Falha ao enviar mensagem de WhatsApp para {number}. Erro: {str(e)}")
         return False
 
+def processar_cliente(cliente, dias):
+    cupom, desconto = gerar_cupom(cliente['nome'], cliente['telefone'], dias)
+    nome_cupom = f"Desconto de {desconto}% para {cliente['nome']}"
+    data_validade = calcular_data_validade()
+    
+    cupom_criado = criar_cupom_shopify(nome_cupom, cupom, desconto, data_validade)
+    
+    mensagem = gerar_mensagem_personalizada(cliente['nome'].split()[0], cupom, desconto, dias)
+    
+    logger.info(f"Data do último pedido: {cliente['data_ultimo_pedido'][:10]}")
+    logger.info(f"Nome: {cliente['nome']}")
+    logger.info(f"Email: {cliente['email']}")
+    logger.info(f"Telefone: {cliente['telefone']}")
+    logger.info(f"Nome do cupom: {nome_cupom}")
+    logger.info(f"Código do cupom de desconto: {cupom}")
+    logger.info(f"Valor do desconto: {desconto}%")
+    logger.info(f"Data de validade do cupom: {data_validade.strftime('%d/%m/%Y às %H:%M')}")
+    logger.info(f"Cupom criado na Shopify: {'Sim' if cupom_criado else 'Não'}")
+    logger.info("\nMensagem personalizada:")
+    logger.info(mensagem)
+    
+    if send_whatsapp_message(cliente['telefone'], mensagem):
+        logger.info("Mensagem de WhatsApp enviada com sucesso.")
+    else:
+        logger.warning("Falha ao enviar mensagem de WhatsApp.")
+    
+    logger.info("--------------------")
+
 def imprimir_dados_clientes(clientes_por_periodo):
     for dias, clientes in clientes_por_periodo.items():
         logger.info(f"\n--- Clientes que fizeram o último pedido há {dias} dias ---")
@@ -209,33 +237,7 @@ def imprimir_dados_clientes(clientes_por_periodo):
             logger.info("Nenhum cliente encontrado para este período.")
         else:
             for cliente in clientes:
-                cupom, desconto = gerar_cupom(cliente['nome'], cliente['telefone'], dias)
-                nome_cupom = f"Desconto de {desconto}% para {cliente['nome']}"
-                data_validade = calcular_data_validade()
-                
-                cupom_criado = criar_cupom_shopify(nome_cupom, cupom, desconto, data_validade)
-                
-                mensagem = gerar_mensagem_personalizada(cliente['nome'].split()[0], cupom, desconto, dias)
-                
-                logger.info(f"Data do último pedido: {cliente['data_ultimo_pedido'][:10]}")
-                logger.info(f"Nome: {cliente['nome']}")
-                logger.info(f"Email: {cliente['email']}")
-                logger.info(f"Telefone: {cliente['telefone']}")
-                logger.info(f"Nome do cupom: {nome_cupom}")
-                logger.info(f"Código do cupom de desconto: {cupom}")
-                logger.info(f"Valor do desconto: {desconto}%")
-                logger.info(f"Data de validade do cupom: {data_validade.strftime('%d/%m/%Y às %H:%M')}")
-                logger.info(f"Cupom criado na Shopify: {'Sim' if cupom_criado else 'Não'}")
-                logger.info("\nMensagem personalizada:")
-                logger.info(mensagem)
-                
-                # Enviar mensagem de WhatsApp
-                if send_whatsapp_message(cliente['telefone'], mensagem):
-                    logger.info("Mensagem de WhatsApp enviada com sucesso.")
-                else:
-                    logger.warning("Falha ao enviar mensagem de WhatsApp.")
-                
-                logger.info("--------------------")
+                processar_cliente(cliente, dias)
                 
                 # Intervalo aleatório entre 2 a 5 minutos (120 a 300 segundos)
                 intervalo = random.randint(120, 300)
