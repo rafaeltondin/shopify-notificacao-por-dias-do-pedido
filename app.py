@@ -253,16 +253,18 @@ def executar():
         imprimir_dados_clientes(clientes_por_periodo)
     logger.info("Processo concluído.")
 
-def job():
-    try:
-        executar()
-    except Exception as e:
-        logger.error(f"Ocorreu um erro não tratado durante a execução do script: {str(e)}")
-        logger.error(traceback.format_exc())
+def agendar_proxima_execucao():
+    # Define a próxima execução para as 08:00 (horário de São Paulo)
+    schedule.every().day.at("08:00").do(executar)
 
 if __name__ == "__main__":
-    schedule.every().day.at("08:00").do(job)
-     
+    # Executa a primeira vez imediatamente
+    executar()
+
+    # Agenda as próximas execuções para as 08:00 (horário de São Paulo)
+    agendar_proxima_execucao()
+
+    # Mantém o script ativo para executar as tarefas agendadas
     while True:
-       schedule.run_pending()
-       time.sleep(60)  # Check every minute
+        schedule.run_pending()
+        time.sleep(60)
