@@ -123,7 +123,7 @@ def calcular_data_validade():
 def gerar_mensagem_personalizada(nome, cupom, desconto, dias):
     data_validade = calcular_data_validade().strftime("%d/%m/%Y às %H:%M")
     mensagem = f"""🌟 Olá, {nome}! 🌟
-🎉 Já faz *{dias} dias* que você não compra nada na Fiber! A gente sente sua falta! Para te dar boas-vindas de volta, temos um presentão pra você!
+🎉 Já faz *{dias} dias* que você não compra nada na Fiber! A gente sente sua falta! Para te dar boas-vindas de volta, temos um presente pra você!
 🎁 *Use o cupom:* *{cupom}* e ganhe *{desconto}% de desconto* na sua próxima compra! 
 🛒 Dá uma olhada nos nossos novos produtos e aproveita essa oferta incrível. Só presta atenção para não deixar esta oportunidade escapar, o cupom é válido somente até *{data_validade}*!
 👉 *Como usar:* Na hora de finalizar a compra, insira o código *{cupom}* no campo de cupom de desconto.
@@ -262,7 +262,7 @@ def job():
 
 if __name__ == "__main__":
     schedule.every().day.at("08:00").do(job)
-    
+     
     while True:
-        schedule.run_pending()
-        time.sleep(60)  # Check every minute
+       schedule.run_pending()
+       time.sleep(60)  # Check every minute
