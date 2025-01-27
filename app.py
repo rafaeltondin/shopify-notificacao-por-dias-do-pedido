@@ -110,15 +110,15 @@ def gerar_cupom(nome, telefone, dias):
     sufixo = telefone[-5:] if len(telefone) >= 5 else telefone.zfill(5)
     
     if dias <= 30:
-        desconto = 10
+        desconto = 7
     elif dias <= 60:
-        desconto = 12
+        desconto = 9
     elif dias <= 90:
-        desconto = 14
+        desconto = 11
     elif dias <= 180:
-        desconto = 17
+        desconto = 13
     else:
-        desconto = 20
+        desconto = 15
     
     cupom = f"{prefixo}{sufixo}OFF{desconto}"
     
